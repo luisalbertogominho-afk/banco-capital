@@ -68,7 +68,7 @@
 </div>
 
 <!-- LOGIN -->
-<div class="login active" id="login">
+<div class="login active" id="loginBox">
   <h2>Login</h2>
   <input id="user" placeholder="Usuário">
   <input id="pass" type="password" placeholder="Senha">
@@ -105,7 +105,7 @@
   </div>
 
   <div class="card admin">
-    <h3>🛠 Admin (simples)</h3>
+    <h3>🛠 Admin</h3>
     <input id="admUser" placeholder="Usuário">
     <input id="admValue" type="number" placeholder="Dar dinheiro">
     <button onclick="giveMoney()">Dar dinheiro</button>
@@ -116,8 +116,10 @@
 </div>
 
 <script>
+
 let current = null;
 
+// DB local
 function getUsers(){
   return JSON.parse(localStorage.getItem("bank") || "{}");
 }
@@ -126,9 +128,10 @@ function saveUsers(data){
   localStorage.setItem("bank", JSON.stringify(data));
 }
 
+// REGISTRO
 function register(){
-  let u = user.value;
-  let p = pass.value;
+  let u = document.getElementById("user").value;
+  let p = document.getElementById("pass").value;
 
   let db = getUsers();
 
@@ -144,29 +147,36 @@ function register(){
   alert("Conta criada!");
 }
 
+// LOGIN (CORRIGIDO)
 function login(){
-  let u = user.value;
-  let p = pass.value;
+  let u = document.getElementById("user").value;
+  let p = document.getElementById("pass").value;
 
   let db = getUsers();
 
   if(db[u] && db[u].pass === p){
     current = u;
-    login.classList.remove("active");
-    app.classList.add("active");
 
-    nome.innerText = u;
+    document.getElementById("loginBox").classList.remove("active");
+    document.getElementById("app").classList.add("active");
+
+    document.getElementById("nome").innerText = u;
+
     update();
   } else {
     alert("Login inválido!");
   }
 }
 
+// ATUALIZAR
 function update(){
   let db = getUsers();
-  saldo.innerText = db[current].saldo;
 
+  document.getElementById("saldo").innerText = db[current].saldo;
+
+  let hist = document.getElementById("hist");
   hist.innerHTML = "";
+
   db[current].hist.forEach(h=>{
     let li = document.createElement("li");
     li.innerText = h;
@@ -174,8 +184,9 @@ function update(){
   });
 }
 
+// DEPÓSITO
 function depositar(){
-  let v = Number(dep.value);
+  let v = Number(document.getElementById("dep").value);
   let db = getUsers();
 
   db[current].saldo += v;
@@ -185,9 +196,10 @@ function depositar(){
   update();
 }
 
+// TRANSFERÊNCIA
 function transferir(){
-  let v = Number(valor.value);
-  let t = toUser.value;
+  let v = Number(document.getElementById("valor").value);
+  let t = document.getElementById("toUser").value;
 
   let db = getUsers();
 
@@ -197,31 +209,34 @@ function transferir(){
   db[current].saldo -= v;
   db[t].saldo += v;
 
-  db[current].hist.push("Transferência -" + v + " para " + t);
+  db[current].hist.push("Transferiu -" + v + " para " + t);
   db[t].hist.push("Recebeu +" + v + " de " + current);
 
   saveUsers(db);
   update();
 }
 
+// ADMIN
 function giveMoney(){
-  let u = admUser.value;
-  let v = Number(admValue.value);
+  let u = document.getElementById("admUser").value;
+  let v = Number(document.getElementById("admValue").value);
 
   let db = getUsers();
 
   if(!db[u]) return alert("Usuário não existe!");
 
   db[u].saldo += v;
-  db[u].hist.push("Admin + " + v);
+  db[u].hist.push("Admin +" + v);
 
   saveUsers(db);
   alert("Dinheiro enviado!");
 }
 
+// LOGOUT
 function logout(){
   location.reload();
 }
+
 </script>
 
 </body>
