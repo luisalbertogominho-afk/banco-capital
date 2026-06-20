@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Banco Capital</title>
+  <style>
+    body { font-family: Arial; text-align:center; background:#f2f2f2; }
+    .box { background:white; padding:20px; margin:20px auto; width:300px; border-radius:10px; }
+    button { padding:10px; margin:5px; }
+  </style>
+</head>
+
+<body>
+  <h1>🏦 Banco Capital</h1>
+
+  <div class="box">
+    <h2>Saldo</h2>
+    <h1 id="saldo">10000</h1>
+  </div>
+
+  <div class="box">
+    <button onclick="depositar()">Depositar 500</button>
+    <button onclick="transferir()">Transferir 300</button>
+  </div>
+
+  <script>
+    let saldo = 10000;
+
+    function atualizar(){
+      document.getElementById("saldo").innerText = saldo;
+    }
+
+    function depositar(){
+      saldo += 500;
+      atualizar();
+    }
+
+    function transferir(){
+      saldo -= 300;
+      atualizar();
+    }
+
+    atualizar();
+  </script>
+</body>
+</html>
