@@ -1,243 +1,124 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt">
 <head>
-  <title>Banco Capital PRO</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial;
-      background: #0f172a;
-      color: white;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banco Capital</title>
 
-    .login, .app {
-      display: none;
-      padding: 20px;
-    }
-
-    .active {
-      display: block;
-    }
-
-    .card {
-      background: #1e293b;
-      padding: 15px;
-      margin: 10px 0;
-      border-radius: 10px;
-    }
-
-    input, button {
-      padding: 10px;
-      margin: 5px;
-      width: 100%;
-      border-radius: 6px;
-      border: none;
-    }
-
-    button {
-      background: #2563eb;
-      color: white;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: #1d4ed8;
-    }
-
-    .topbar {
-      background: #111827;
-      padding: 15px;
-      font-size: 18px;
-    }
-
-    .admin {
-      background: #7c3aed;
-    }
-
-    ul {
-      list-style: none;
-      padding: 0;
-    }
-  </style>
+    <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-<div class="topbar">
-  🏦 Banco Capital PRO
-</div>
+    <div id="loginScreen" class="screen">
+        <div class="login-box">
+            <h1>🏦 Banco Capital</h1>
 
-<!-- LOGIN -->
-<div class="login active" id="loginBox">
-  <h2>Login</h2>
-  <input id="user" placeholder="Usuário">
-  <input id="pass" type="password" placeholder="Senha">
-  <button onclick="login()">Entrar</button>
-  <button onclick="register()">Criar Conta</button>
-</div>
+            <input type="text" id="username" placeholder="Usuário">
 
-<!-- APP -->
-<div class="app" id="app">
+            <input type="password" id="password" placeholder="Senha">
 
-  <h2>Bem-vindo, <span id="nome"></span></h2>
+            <button onclick="login()">Entrar</button>
 
-  <div class="card">
-    <h3>💰 Saldo</h3>
-    <h1>$<span id="saldo">0</span></h1>
-  </div>
+            <button onclick="register()">Criar Conta</button>
+        </div>
+    </div>
 
-  <div class="card">
-    <h3>💸 Transferência</h3>
-    <input id="toUser" placeholder="Usuário destino">
-    <input id="valor" type="number" placeholder="Valor">
-    <button onclick="transferir()">Transferir</button>
-  </div>
+    <div id="appScreen" class="screen hidden">
 
-  <div class="card">
-    <h3>➕ Depósito</h3>
-    <input id="dep" type="number" placeholder="Valor">
-    <button onclick="depositar()">Depositar</button>
-  </div>
+        <header>
 
-  <div class="card">
-    <h3>📜 Histórico</h3>
-    <ul id="hist"></ul>
-  </div>
+            <h1>🏦 Banco Capital</h1>
 
-  <div class="card admin">
-    <h3>🛠 Admin</h3>
-    <input id="admUser" placeholder="Usuário">
-    <input id="admValue" type="number" placeholder="Dar dinheiro">
-    <button onclick="giveMoney()">Dar dinheiro</button>
-  </div>
+            <div class="user-info">
+                <span id="userDisplay"></span>
+                <button onclick="logout()">Sair</button>
+            </div>
 
-  <button onclick="logout()">Sair</button>
+        </header>
 
-</div>
+        <main>
 
-<script>
+            <div class="dashboard">
 
-let current = null;
+                <div class="card">
+                    <h3>Saldo</h3>
+                    <h1 id="saldo">0</h1>
+                </div>
 
-// DB local
-function getUsers(){
-  return JSON.parse(localStorage.getItem("bank") || "{}");
-}
+                <div class="card">
+                    <h3>Número da Conta</h3>
+                    <h2 id="contaNumero"></h2>
+                </div>
 
-function saveUsers(data){
-  localStorage.setItem("bank", JSON.stringify(data));
-}
+            </div>
 
-// REGISTRO
-function register(){
-  let u = document.getElementById("user").value;
-  let p = document.getElementById("pass").value;
+            <div class="section">
 
-  let db = getUsers();
+                <h2>💸 Transferência</h2>
 
-  if(db[u]) return alert("Usuário já existe!");
+                <input id="contaDestino" placeholder="Conta destino">
 
-  db[u] = {
-    pass: p,
-    saldo: 1000,
-    hist: []
-  };
+                <input id="valorTransferencia" type="number" placeholder="Valor">
 
-  saveUsers(db);
-  alert("Conta criada!");
-}
+                <button onclick="transferir()">Transferir</button>
 
-// LOGIN (CORRIGIDO)
-function login(){
-  let u = document.getElementById("user").value;
-  let p = document.getElementById("pass").value;
+            </div>
 
-  let db = getUsers();
+            <div class="section">
 
-  if(db[u] && db[u].pass === p){
-    current = u;
+                <h2>📈 Empréstimo</h2>
 
-    document.getElementById("loginBox").classList.remove("active");
-    document.getElementById("app").classList.add("active");
+                <input id="valorEmprestimo" type="number" placeholder="Valor">
 
-    document.getElementById("nome").innerText = u;
+                <button onclick="emprestimo()">Solicitar</button>
 
-    update();
-  } else {
-    alert("Login inválido!");
-  }
-}
+            </div>
 
-// ATUALIZAR
-function update(){
-  let db = getUsers();
+            <div class="section">
 
-  document.getElementById("saldo").innerText = db[current].saldo;
+                <h2>💰 Poupança</h2>
 
-  let hist = document.getElementById("hist");
-  hist.innerHTML = "";
+                <input id="valorPoupanca" type="number" placeholder="Valor">
 
-  db[current].hist.forEach(h=>{
-    let li = document.createElement("li");
-    li.innerText = h;
-    hist.appendChild(li);
-  });
-}
+                <button onclick="guardarPoupanca()">Guardar</button>
 
-// DEPÓSITO
-function depositar(){
-  let v = Number(document.getElementById("dep").value);
-  let db = getUsers();
+            </div>
 
-  db[current].saldo += v;
-  db[current].hist.push("Depósito +" + v);
+            <div class="section">
 
-  saveUsers(db);
-  update();
-}
+                <h2>🏆 Ranking</h2>
 
-// TRANSFERÊNCIA
-function transferir(){
-  let v = Number(document.getElementById("valor").value);
-  let t = document.getElementById("toUser").value;
+                <ul id="ranking"></ul>
 
-  let db = getUsers();
+            </div>
 
-  if(!db[t]) return alert("Usuário não existe!");
-  if(db[current].saldo < v) return alert("Saldo insuficiente!");
+            <div class="section">
 
-  db[current].saldo -= v;
-  db[t].saldo += v;
+                <h2>📜 Histórico</h2>
 
-  db[current].hist.push("Transferiu -" + v + " para " + t);
-  db[t].hist.push("Recebeu +" + v + " de " + current);
+                <ul id="historico"></ul>
 
-  saveUsers(db);
-  update();
-}
+            </div>
 
-// ADMIN
-function giveMoney(){
-  let u = document.getElementById("admUser").value;
-  let v = Number(document.getElementById("admValue").value);
+            <div id="adminPanel" class="section hidden">
 
-  let db = getUsers();
+                <h2>👑 Painel Admin</h2>
 
-  if(!db[u]) return alert("Usuário não existe!");
+                <input id="adminUser" placeholder="Usuário">
 
-  db[u].saldo += v;
-  db[u].hist.push("Admin +" + v);
+                <input id="adminValor" type="number" placeholder="Valor">
 
-  saveUsers(db);
-  alert("Dinheiro enviado!");
-}
+                <button onclick="giveMoney()">
+                    Dar Dinheiro
+                </button>
 
-// LOGOUT
-function logout(){
-  location.reload();
-}
+            </div>
 
-</script>
+        </main>
+
+    </div>
+
+    <script src="script.js"></script>
 
 </body>
 </html>
