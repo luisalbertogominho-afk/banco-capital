@@ -1,45 +1,120 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Banco Capital</title>
+  <title>Banco Capital - Login</title>
   <style>
     body { font-family: Arial; text-align:center; background:#f2f2f2; }
-    .box { background:white; padding:20px; margin:20px auto; width:300px; border-radius:10px; }
-    button { padding:10px; margin:5px; }
+    .box { background:white; padding:20px; margin:50px auto; width:300px; border-radius:10px; }
+    input { padding:10px; margin:5px; width:90%; }
+    button { padding:10px; margin-top:10px; width:95%; }
   </style>
 </head>
 
 <body>
-  <h1>🏦 Banco Capital</h1>
 
-  <div class="box">
-    <h2>Saldo</h2>
-    <h1 id="saldo">10000</h1>
-  </div>
+<div class="box" id="loginBox">
+  <h2>🏦 Banco Capital</h2>
+  <input id="user" placeholder="Usuário">
+  <input id="pass" type="password" placeholder="Senha">
+  <button onclick="login()">Entrar</button>
+  <button onclick="register()">Criar conta</button>
+</div>
 
-  <div class="box">
-    <button onclick="depositar()">Depositar 500</button>
-    <button onclick="transferir()">Transferir 300</button>
-  </div>
+<div class="box" id="app" style="display:none;">
+  <h2>Bem-vindo, <span id="nome"></span></h2>
+  <h3>Saldo: $<span id="saldo">0</span></h3>
 
-  <script>
-    let saldo = 10000;
+  <input id="valor" type="number" placeholder="Valor">
+  <button onclick="depositar()">Depositar</button>
+  <button onclick="sacar()">Sacar</button>
+  <br><br>
+  <button onclick="logout()">Sair</button>
+</div>
 
-    function atualizar(){
-      document.getElementById("saldo").innerText = saldo;
-    }
+<script>
+let atual = null;
 
-    function depositar(){
-      saldo += 500;
-      atualizar();
-    }
+// carregar dados
+function getUsers(){
+  return JSON.parse(localStorage.getItem("users") || "{}");
+}
 
-    function transferir(){
-      saldo -= 300;
-      atualizar();
-    }
+function saveUsers(users){
+  localStorage.setItem("users", JSON.stringify(users));
+}
 
+// registrar
+function register(){
+  let u = document.getElementById("user").value;
+  let p = document.getElementById("pass").value;
+
+  let users = getUsers();
+
+  if(users[u]){
+    alert("Usuário já existe!");
+    return;
+  }
+
+  users[u] = {pass:p, saldo:1000};
+  saveUsers(users);
+
+  alert("Conta criada com sucesso!");
+}
+
+// login
+function login(){
+  let u = document.getElementById("user").value;
+  let p = document.getElementById("pass").value;
+
+  let users = getUsers();
+
+  if(users[u] && users[u].pass === p){
+    atual = u;
+    document.getElementById("loginBox").style.display="none";
+    document.getElementById("app").style.display="block";
+
+    document.getElementById("nome").innerText = u;
     atualizar();
-  </script>
+  } else {
+    alert("Login inválido!");
+  }
+}
+
+// atualizar saldo
+function atualizar(){
+  let users = getUsers();
+  document.getElementById("saldo").innerText = users[atual].saldo;
+}
+
+// depositar
+function depositar(){
+  let v = Number(document.getElementById("valor").value);
+  let users = getUsers();
+
+  users[atual].saldo += v;
+  saveUsers(users);
+  atualizar();
+}
+
+// sacar
+function sacar(){
+  let v = Number(document.getElementById("valor").value);
+  let users = getUsers();
+
+  if(users[atual].saldo >= v){
+    users[atual].saldo -= v;
+    saveUsers(users);
+    atualizar();
+  } else {
+    alert("Saldo insuficiente!");
+  }
+}
+
+// logout
+function logout(){
+  location.reload();
+}
+</script>
+
 </body>
 </html>
