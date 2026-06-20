@@ -1,491 +1,306 @@
 // ======================
-// BANCO CAPITAL PRO
-// PARTE 1
+// BANCO CAPITAL PRO V2
 // ======================
 
-const ADMIN_NAME = "Ana";
-const START_MONEY = 10000;
-const SALARY_AMOUNT = 10000;
-const SALARY_TIME = 600000; // 10 minutos
+const ADMIN = "Ana";
+const SALDO_INICIAL = 10000;
+const SALARIO = 10000;
+const TEMPO_SALARIO = 600000; // 10 min
 
 let currentUser = null;
 
-// Base de dados
-function getBank(){
-    return JSON.parse(localStorage.getItem("BancoCapitalDB") || "{}");
+// ======================
+// BASE DE DADOS
+// ======================
+function getDB(){
+    return JSON.parse(localStorage.getItem("BANK_DB") || "{}");
 }
 
-function saveBank(data){
-    localStorage.setItem("BancoCapitalDB", JSON.stringify(data));
+function saveDB(db){
+    localStorage.setItem("BANK_DB", JSON.stringify(db));
 }
 
-// Sessão
-function saveSession(user){
-    localStorage.setItem("BancoCapitalSession", user);
-}
-
-function getSession(){
-    return localStorage.getItem("BancoCapitalSession");
-}
-
-function clearSession(){
-    localStorage.removeItem("BancoCapitalSession");
-}
-
-// Número da conta
-function generateAccount(){
-    return Math.floor(
-        10000000 + Math.random() * 90000000
-    ).toString();
-}
-
-// Data/Hora
-function getDateTime(){
+// ======================
+// UTILIDADES
+// ======================
+function getTime(){
     return new Date().toLocaleString();
 }
 
-// Histórico
-function addHistory(user, msg){
-    let db = getBank();
-
-    db[user].hist.push(
-        "[" + getDateTime() + "] " + msg
-    );
-
-    saveBank(db);
+function generateAccount(){
+    return "10" + Math.floor(Math.random() * 900000000);
 }
 
-// Registro
+// ======================
+// REGISTO
+// ======================
 function register(){
 
-    let username =
-        document.getElementById("username").value.trim();
+    let u = document.getElementById("username").value;
+    let p = document.getElementById("password").value;
 
-    let password =
-        document.getElementById("password").value.trim();
+    let db = getDB();
 
-    if(!username || !password){
-        alert("Preencha todos os campos!");
-        return;
-    }
-
-    let db = getBank();
-
-    if(db[username]){
+    if(db[u]){
         alert("Usuário já existe!");
         return;
     }
 
-    db[username] = {
-        password: password,
-        saldo: START_MONEY,
-        poupanca: 0,
-        emprestimo: 0,
+    db[u] = {
+        pass: p,
+        saldo: SALDO_INICIAL,
         conta: generateAccount(),
-        hist: [
-            "[" + getDateTime() + "] Conta criada."
-        ],
-        notifications: [],
+        poupanca: 0,
+        emprestimos: [],
+        historico: [],
+        notif: [],
         lastSalary: Date.now()
     };
 
-    saveBank(db);
+    saveDB(db);
 
-    alert(
-        "Conta criada com sucesso!\nConta Nº: " +
-        db[username].conta
-    );
+    alert("Conta criada! Número: " + db[u].conta);
 }
 
-// Login
+// ======================
+// LOGIN
+// ======================
 function login(){
 
-    let username =
-        document.getElementById("username").value.trim();
+    let u = document.getElementById("username").value;
+    let p = document.getElementById("password").value;
 
-    let password =
-        document.getElementById("password").value.trim();
+    let db = getDB();
 
-    let db = getBank();
+    if(db[u] && db[u].pass === p){
 
-    if(
-        db[username] &&
-        db[username].password === password
-    ){
+        currentUser = u;
 
-        currentUser = username;
+        document.getElementById("loginScreen").classList.add("hidden");
+        document.getElementById("appScreen").classList.remove("hidden");
 
-        saveSession(username);
-
-        document
-            .getElementById("loginScreen")
-            .classList.add("hidden");
-
-        document
-            .getElementById("appScreen")
-            .classList.remove("hidden");
-
-        loadDashboard();
+        load();
+        salaryCheck();
 
     }else{
-        alert("Usuário ou senha incorretos.");
+        alert("Login inválido!");
     }
 }
 
-// Logout
+// ======================
+// LOGOUT
+// ======================
 function logout(){
-
-    clearSession();
-
+    localStorage.removeItem("BANK_SESSION");
     location.reload();
 }
 
 // ======================
-// BANCO CAPITAL PRO
-// PARTE 2
+// CARREGAR DASHBOARD
 // ======================
+function load(){
 
-// Dashboard
-function loadDashboard(){
+    let db = getDB();
+    let u = db[currentUser];
 
-    let db = getBank();
-
-    if(!db[currentUser]) return;
-
-    let user = db[currentUser];
-
-    document.getElementById("userDisplay").innerText =
-        "👤 " + currentUser;
-
-    document.getElementById("saldo").innerText =
-        "$" + user.saldo.toLocaleString();
-
-    document.getElementById("contaNumero").innerText =
-        user.conta;
+    document.getElementById("userDisplay").innerText = currentUser;
+    document.getElementById("saldo").innerText = u.saldo;
+    document.getElementById("contaNumero").innerText = u.conta;
 
     loadHistory();
-    loadRanking();
     checkAdmin();
-    checkSalary();
 }
 
-// Histórico
+// ======================
+// HISTÓRICO
+// ======================
+function addHistory(msg){
+
+    let db = getDB();
+
+    db[currentUser].historico.push("[" + getTime() + "] " + msg);
+
+    saveDB(db);
+}
+
 function loadHistory(){
 
-    let db = getBank();
-
-    let list =
-        document.getElementById("historico");
+    let db = getDB();
+    let list = document.getElementById("historico");
 
     list.innerHTML = "";
 
-    db[currentUser].hist
-    .slice()
-    .reverse()
-    .forEach(item => {
-
-        let li =
-            document.createElement("li");
-
-        li.innerText = item;
-
+    db[currentUser].historico.slice().reverse().forEach(h => {
+        let li = document.createElement("li");
+        li.innerText = h;
         list.appendChild(li);
     });
 }
 
-// Ranking
-function loadRanking(){
+// ======================
+// DEPÓSITO
+// ======================
+function depositar(){
 
-    let db = getBank();
+    let v = Number(document.getElementById("dep").value);
 
-    let ranking =
-        document.getElementById("ranking");
+    let db = getDB();
 
-    ranking.innerHTML = "";
+    db[currentUser].saldo += v;
 
-    let users =
-        Object.keys(db).map(name => {
+    addHistory("Depósito +" + v);
 
-            return {
-                name: name,
-                saldo: db[name].saldo
-            };
+    saveDB(db);
 
-        });
-
-    users.sort(
-        (a,b) => b.saldo - a.saldo
-    );
-
-    users.slice(0,10).forEach(user => {
-
-        let li =
-            document.createElement("li");
-
-        li.innerText =
-            user.name +
-            " - $" +
-            user.saldo.toLocaleString();
-
-        ranking.appendChild(li);
-
-    });
+    load();
 }
-
-// Painel Admin
-function checkAdmin(){
-
-    if(currentUser === ADMIN_NAME){
-
-        document
-        .getElementById("adminPanel")
-        .classList.remove("hidden");
-
-    }else{
-
-        document
-        .getElementById("adminPanel")
-        .classList.add("hidden");
-
-    }
-}
-
-// Dar dinheiro
-function giveMoney(){
-
-    if(currentUser !== ADMIN_NAME){
-
-        alert("Apenas Ana pode usar.");
-        return;
-
-    }
-
-    let user =
-        document.getElementById("adminUser").value;
-
-    let value =
-        Number(
-            document.getElementById("adminValor").value
-        );
-
-    let db = getBank();
-
-    if(!db[user]){
-
-        alert("Usuário não encontrado.");
-        return;
-
-    }
-
-    db[user].saldo += value;
-
-    db[user].notifications.push(
-        "👑 Administração enviou $" +
-        value.toLocaleString()
-    );
-
-    addHistory(
-        user,
-        "Administração enviou $" +
-        value.toLocaleString()
-    );
-
-    saveBank(db);
-
-    alert("Dinheiro enviado.");
-
-    loadDashboard();
-}
-
-// Salário automático
-function checkSalary(){
-
-    let db = getBank();
-
-    let user = db[currentUser];
-
-    let now = Date.now();
-
-    if(
-        now - user.lastSalary >= SALARY_TIME
-    ){
-
-        user.saldo += SALARY_AMOUNT;
-
-        user.lastSalary = now;
-
-        user.notifications.push(
-            "💰 Salário recebido: $" +
-            SALARY_AMOUNT.toLocaleString()
-        );
-
-        user.hist.push(
-            "[" + getDateTime() + "] Salário recebido: $" +
-            SALARY_AMOUNT.toLocaleString()
-        );
-
-        saveBank(db);
-
-        alert(
-            "Você recebeu $" +
-            SALARY_AMOUNT.toLocaleString()
-        );
-    }
-}
-
-// Sessão automática
-window.onload = function(){
-
-    let session = getSession();
-
-    if(session){
-
-        let db = getBank();
-
-        if(db[session]){
-
-            currentUser = session;
-
-            document
-            .getElementById("loginScreen")
-            .classList.add("hidden");
-
-            document
-            .getElementById("appScreen")
-            .classList.remove("hidden");
-
-            loadDashboard();
-        }
-    }
-};
 
 // ======================
-// BANCO CAPITAL PRO
-// PARTE 3 (FINAL)
+// TRANSFERÊNCIA POR CONTA
 // ======================
-
-// Transferência por número de conta
 function transferir(){
 
-    let contaDestino =
-        document.getElementById("contaDestino").value;
+    let conta = document.getElementById("toUser").value;
+    let v = Number(document.getElementById("valor").value);
 
-    let valor =
-        Number(
-            document.getElementById("valorTransferencia").value
-        );
-
-    let db = getBank();
+    let db = getDB();
 
     let sender = db[currentUser];
+    let receiver = null;
 
-    let receiverName = null;
-
-    // procurar usuário pela conta
-    for(let user in db){
-
-        if(db[user].conta === contaDestino){
-            receiverName = user;
-            break;
+    for(let u in db){
+        if(db[u].conta === conta){
+            receiver = u;
         }
     }
 
-    if(!receiverName){
+    if(!receiver){
         alert("Conta não encontrada!");
         return;
     }
 
-    if(sender.saldo < valor){
+    if(sender.saldo < v){
         alert("Saldo insuficiente!");
         return;
     }
 
-    sender.saldo -= valor;
-    db[receiverName].saldo += valor;
+    sender.saldo -= v;
+    db[receiver].saldo += v;
 
-    addHistory(
-        currentUser,
-        "Transferiu $" + valor + " para " + receiverName
-    );
+    addHistory("Transferiu " + v + " para " + receiver);
+    db[receiver].historico.push("[" + getTime() + "] Recebeu +" + v);
 
-    addHistory(
-        receiverName,
-        "Recebeu $" + valor + " de " + currentUser
-    );
-
-    db[receiverName].notifications.push(
-        "💸 Você recebeu $" + valor + " de " + currentUser
-    );
-
-    saveBank(db);
-
-    loadDashboard();
-
-    alert("Transferência realizada!");
+    saveDB(db);
+    load();
 }
 
-// Empréstimo
+// ======================
+// EMPRÉSTIMO (PEDIDO)
+// ======================
 function emprestimo(){
 
-    let valor =
-        Number(
-            document.getElementById("valorEmprestimo").value
-        );
+    let v = Number(document.getElementById("valorEmprestimo").value);
 
-    let db = getBank();
+    let db = getDB();
 
-    db[currentUser].saldo += valor;
+    db[currentUser].emprestimos.push({
+        valor: v,
+        status: "pendente"
+    });
 
-    db[currentUser].emprestimo += valor;
+    db["ADMIN_REQUESTS"] = db["ADMIN_REQUESTS"] || [];
+    db["ADMIN_REQUESTS"].push({
+        user: currentUser,
+        valor: v
+    });
 
-    addHistory(
-        currentUser,
-        "Empréstimo recebido: $" + valor
-    );
+    saveDB(db);
 
-    saveBank(db);
-
-    loadDashboard();
-
-    alert("Empréstimo aprovado!");
+    alert("Pedido enviado ao admin!");
 }
 
-// Poupança
+// ======================
+// POUPANÇA
+// ======================
 function guardarPoupanca(){
 
-    let valor =
-        Number(
-            document.getElementById("valorPoupanca").value
-        );
+    let v = Number(document.getElementById("valorPoupanca").value);
 
-    let db = getBank();
+    let db = getDB();
 
-    if(db[currentUser].saldo < valor){
+    if(db[currentUser].saldo < v){
         alert("Saldo insuficiente!");
         return;
     }
 
-    db[currentUser].saldo -= valor;
+    db[currentUser].saldo -= v;
+    db[currentUser].poupanca += v;
 
-    db[currentUser].poupanca += valor;
+    addHistory("Guardou poupança +" + v);
 
-    addHistory(
-        currentUser,
-        "Guardou na poupança: $" + valor
-    );
+    saveDB(db);
 
-    saveBank(db);
-
-    loadDashboard();
-
-    alert("Valor guardado na poupança!");
+    load();
 }
 
-// Atualização automática do sistema
-setInterval(() => {
+// ======================
+// ADMIN
+// ======================
+function checkAdmin(){
 
-    if(currentUser){
-        loadDashboard();
+    if(currentUser === ADMIN){
+        document.getElementById("adminPanel").classList.remove("hidden");
+    }
+}
+
+function giveMoney(){
+
+    if(currentUser !== ADMIN){
+        alert("Apenas admin!");
+        return;
     }
 
+    let u = document.getElementById("adminUser").value;
+    let v = Number(document.getElementById("adminValue").value);
+
+    let db = getDB();
+
+    db[u].saldo += v;
+
+    db[u].historico.push("Admin +" + v);
+
+    saveDB(db);
+
+    load();
+}
+
+// ======================
+// SALÁRIO AUTOMÁTICO
+// ======================
+function salaryCheck(){
+
+    let db = getDB();
+    let u = db[currentUser];
+
+    if(Date.now() - u.lastSalary > TEMPO_SALARIO){
+
+        u.saldo += SALARIO;
+        u.lastSalary = Date.now();
+
+        addHistory("Salário +" + SALARIO);
+
+        saveDB(db);
+
+        load();
+    }
+}
+
+// ======================
+// AUTO SALVAMENTO
+// ======================
+setInterval(() => {
+    if(currentUser){
+        salaryCheck();
+        load();
+    }
 }, 5000);
