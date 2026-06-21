@@ -1,7 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
+// ================= FIREBASE =================
 const firebaseConfig = {
   apiKey: "SUA_API_KEY",
   authDomain: "banco-capital-80301.firebaseapp.com",
@@ -15,306 +16,108 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-console.log("Firebase conectado!");
-const ADMIN = "Ana";
-const SALDO_INICIAL = 10000;
-const SALARIO = 10000;
-const TEMPO_SALARIO = 600000; // 10 min
-
 let currentUser = null;
 
-// ======================
-// BASE DE DADOS
-// ======================
-function getDB(){
-    return JSON.parse(localStorage.getItem("BANK_DB") || "{}");
-}
+// ================= REGISTER =================
+async function register() {
+  const email = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
 
-function saveDB(db){
-    localStorage.setItem("BANK_DB", JSON.stringify(db));
-}
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
 
-// ======================
-// UTILIDADES
-// ======================
-function getTime(){
-    return new Date().toLocaleString();
-}
-
-function generateAccount(){
-    return "10" + Math.floor(Math.random() * 900000000);
-}
-
-// ======================
-// REGISTO
-// ======================
-function register(){
-
-    let u = document.getElementById("username").value;
-    let p = document.getElementById("password").value;
-
-    let db = getDB();
-
-    if(db[u]){
-        alert("Usuário já existe!");
-        return;
-    }
-
-    db[u] = {
-        pass: p,
-        saldo: SALDO_INICIAL,
-        conta: generateAccount(),
-        poupanca: 0,
-        emprestimos: [],
-        historico: [],
-        notif: [],
-        lastSalary: Date.now()
-    };
-
-    saveDB(db);
-
-    alert("Conta criada! Número: " + db[u].conta);
-}
-
-// ======================
-// LOGIN
-// ======================
-function login(){
-
-    let u = document.getElementById("username").value;
-    let p = document.getElementById("password").value;
-
-    let db = getDB();
-
-    if(db[u] && db[u].pass === p){
-
-        currentUser = u;
-
-        document.getElementById("loginScreen").classList.add("hidden");
-        document.getElementById("appScreen").classList.remove("hidden");
-
-        load();
-        salaryCheck();
-
-    }else{
-        alert("Login inválido!");
-    }
-}
-
-// ======================
-// LOGOUT
-// ======================
-function logout(){
-    localStorage.removeItem("BANK_SESSION");
-    location.reload();
-}
-
-// ======================
-// CARREGAR DASHBOARD
-// ======================
-function load(){
-
-    let db = getDB();
-    let u = db[currentUser];
-
-    document.getElementById("userDisplay").innerText = currentUser;
-    document.getElementById("saldo").innerText = u.saldo;
-    document.getElementById("contaNumero").innerText = u.conta;
-
-    loadHistory();
-    checkAdmin();
-}
-
-// ======================
-// HISTÓRICO
-// ======================
-function addHistory(msg){
-
-    let db = getDB();
-
-    db[currentUser].historico.push("[" + getTime() + "] " + msg);
-
-    saveDB(db);
-}
-
-function loadHistory(){
-
-    let db = getDB();
-    let list = document.getElementById("historico");
-
-    list.innerHTML = "";
-
-    db[currentUser].historico.slice().reverse().forEach(h => {
-        let li = document.createElement("li");
-        li.innerText = h;
-        list.appendChild(li);
-    });
-}
-
-// ======================
-// DEPÓSITO
-// ======================
-function depositar(){
-
-    let v = Number(document.getElementById("dep").value);
-
-    let db = getDB();
-
-    db[currentUser].saldo += v;
-
-    addHistory("Depósito +" + v);
-
-    saveDB(db);
-
-    load();
-}
-
-// ======================
-// TRANSFERÊNCIA POR CONTA
-// ======================
-function transferir(){
-
-    let conta = document.getElementById("toUser").value;
-    let v = Number(document.getElementById("valor").value);
-
-    let db = getDB();
-
-    let sender = db[currentUser];
-    let receiver = null;
-
-    for(let u in db){
-        if(db[u].conta === conta){
-            receiver = u;
-        }
-    }
-
-    if(!receiver){
-        alert("Conta não encontrada!");
-        return;
-    }
-
-    if(sender.saldo < v){
-        alert("Saldo insuficiente!");
-        return;
-    }
-
-    sender.saldo -= v;
-    db[receiver].saldo += v;
-
-    addHistory("Transferiu " + v + " para " + receiver);
-    db[receiver].historico.push("[" + getTime() + "] Recebeu +" + v);
-
-    saveDB(db);
-    load();
-}
-
-// ======================
-// EMPRÉSTIMO (PEDIDO)
-// ======================
-function emprestimo(){
-
-    let v = Number(document.getElementById("valorEmprestimo").value);
-
-    let db = getDB();
-
-    db[currentUser].emprestimos.push({
-        valor: v,
-        status: "pendente"
+    await setDoc(doc(db, "usuarios", user.uid), {
+      email: email,
+      saldo: 10000,
+      conta: Math.floor(Math.random() * 900000000),
+      criadoEm: new Date()
     });
 
-    db["ADMIN_REQUESTS"] = db["ADMIN_REQUESTS"] || [];
-    db["ADMIN_REQUESTS"].push({
-        user: currentUser,
-        valor: v
-    });
+    alert("Conta criada com sucesso!");
+    login();
 
-    saveDB(db);
-
-    alert("Pedido enviado ao admin!");
+  } catch (e) {
+    alert("Erro: " + e.message);
+  }
 }
 
-// ======================
-// POUPANÇA
-// ======================
-function guardarPoupanca(){
+// ================= LOGIN =================
+async function login() {
+  const email = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
 
-    let v = Number(document.getElementById("valorPoupanca").value);
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
 
-    let db = getDB();
+    currentUser = user.uid;
 
-    if(db[currentUser].saldo < v){
-        alert("Saldo insuficiente!");
-        return;
+    const snap = await getDoc(doc(db, "usuarios", user.uid));
+
+    if (snap.exists()) {
+      const data = snap.data();
+
+      document.getElementById("userDisplay").innerText = data.email;
+      document.getElementById("saldo").innerText = data.saldo;
+      document.getElementById("contaNumero").innerText = data.conta;
     }
 
-    db[currentUser].saldo -= v;
-    db[currentUser].poupanca += v;
+    document.getElementById("loginScreen").classList.add("hidden");
+    document.getElementById("appScreen").classList.remove("hidden");
 
-    addHistory("Guardou poupança +" + v);
-
-    saveDB(db);
-
-    load();
+  } catch (e) {
+    alert("Erro login: " + e.message);
+  }
 }
 
-// ======================
-// ADMIN
-// ======================
-function checkAdmin(){
-
-    if(currentUser === ADMIN){
-        document.getElementById("adminPanel").classList.remove("hidden");
-    }
+// ================= LOGOUT =================
+function logout() {
+  signOut(auth);
+  location.reload();
 }
 
-function giveMoney(){
+// ================= TRANSFERÊNCIA =================
+async function transferir() {
+  const contaDestino = document.getElementById("contaDestino").value;
+  const valor = Number(document.getElementById("valorTransferencia").value);
 
-    if(currentUser !== ADMIN){
-        alert("Apenas admin!");
-        return;
-    }
+  const userRef = doc(db, "usuarios", currentUser);
+  const userSnap = await getDoc(userRef);
 
-    let u = document.getElementById("adminUser").value;
-    let v = Number(document.getElementById("adminValue").value);
+  if (!userSnap.exists()) return;
 
-    let db = getDB();
+  const userData = userSnap.data();
 
-    db[u].saldo += v;
+  if (userData.saldo < valor) {
+    alert("Saldo insuficiente!");
+    return;
+  }
 
-    db[u].historico.push("Admin +" + v);
+  // procurar destino
+  const destinoRef = doc(db, "usuarios", contaDestino);
+  const destinoSnap = await getDoc(destinoRef);
 
-    saveDB(db);
+  if (!destinoSnap.exists()) {
+    alert("Conta não encontrada!");
+    return;
+  }
 
-    load();
+  const destinoData = destinoSnap.data();
+
+  await updateDoc(userRef, {
+    saldo: userData.saldo - valor
+  });
+
+  await updateDoc(destinoRef, {
+    saldo: destinoData.saldo + valor
+  });
+
+  alert("Transferência feita!");
 }
 
-// ======================
-// SALÁRIO AUTOMÁTICO
-// ======================
-function salaryCheck(){
-
-    let db = getDB();
-    let u = db[currentUser];
-
-    if(Date.now() - u.lastSalary > TEMPO_SALARIO){
-
-        u.saldo += SALARIO;
-        u.lastSalary = Date.now();
-
-        addHistory("Salário +" + SALARIO);
-
-        saveDB(db);
-
-        load();
-    }
-}
-
-// ======================
-// AUTO SALVAMENTO
-// ======================
-setInterval(() => {
-    if(currentUser){
-        salaryCheck();
-        load();
-    }
-}, 5000);
+// ================= EXPOR FUNÇÕES =================
+window.register = register;
+window.login = login;
+window.logout = logout;
+window.transferir = transferir;
