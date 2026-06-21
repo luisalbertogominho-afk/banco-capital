@@ -35,7 +35,8 @@ async function register() {
     });
 
     alert("Conta criada com sucesso!");
-    login();
+
+    await login();
 
   } catch (e) {
     alert("Erro: " + e.message);
@@ -53,15 +54,7 @@ async function login() {
 
     currentUser = user.uid;
 
-    const snap = await getDoc(doc(db, "usuarios", user.uid));
-
-    if (snap.exists()) {
-      const data = snap.data();
-
-      document.getElementById("userDisplay").innerText = data.email;
-      document.getElementById("saldo").innerText = data.saldo;
-      document.getElementById("contaNumero").innerText = data.conta;
-    }
+    await loadUserData();
 
     document.getElementById("loginScreen").classList.add("hidden");
     document.getElementById("appScreen").classList.remove("hidden");
@@ -75,6 +68,19 @@ async function login() {
 function logout() {
   signOut(auth);
   location.reload();
+}
+
+// ================= CARREGAR DADOS =================
+async function loadUserData() {
+  const snap = await getDoc(doc(db, "usuarios", currentUser));
+
+  if (!snap.exists()) return;
+
+  const data = snap.data();
+
+  document.getElementById("userDisplay").innerText = data.email;
+  document.getElementById("saldo").innerText = data.saldo;
+  document.getElementById("contaNumero").innerText = data.conta;
 }
 
 // ================= TRANSFERÊNCIA =================
@@ -114,6 +120,8 @@ async function transferir() {
   });
 
   alert("Transferência feita!");
+
+  await loadUserData();
 }
 
 // ================= EXPOR FUNÇÕES =================
